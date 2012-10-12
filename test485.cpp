@@ -20,40 +20,45 @@
 #include     <sys/stat.h>
 #include     <fcntl.h>		/*文件控制定义 */
 #include     <termios.h>	/*PPSIX 终端控制定义 */
-#include     <errno.h>		/*错误号定义 */
-#include<string.h>
+#include <errno.h>		/*错误号定义 */
+#include <string.h>
 #include "uart.h"
+#include "test485.h"
 #define TRAN_LEN 2 //发送长度
-void directlink(int a,int b);
-void printusage(void);
 #define TEST485INF "[test485]"
 int main(int argc,char ** argv)
 {
-	int i;int j;
-	int len;
-	int recilen;
-	char strdev[255];//dev string
-	unsigned char buf_send[TRAN_LEN];
-	unsigned char buf_reci[TRAN_LEN];
-
-	int offset=2;//端口起始偏移
-	int comnum=6;//串口个数
 	if(argc < 3){
 		printusage();
 		return 0;
 	}
-	if(strcmp(argv[1],"-d")==0){
-		if(argc != 4 ){
-			printusage();
-			return 0;
-		}
-		printf("directlink\n");
+	if(argc == 3 ){
+		int offset=atoi(argv[1])-1; //COM1开始 地址则ttyS0 开始
+		int comnum=atoi(argv[2]);
+		chkcom(offset,comnum);
+		return 0;
+	}
+	if(argc == 4 && strcmp(argv[1],"-d")==0){
+		//printf("directlink\n");
 		directlink(atoi(argv[2])-1,atoi(argv[3])-1);//com1 = ttyS0
 		return 0;
 	}
-	offset=atoi(argv[1])-1; //COM1开始 地址则ttyS0 开始
-	comnum=atoi(argv[2]);
-#if 1
+	//anything else, print usage
+	printusage();
+	return 0;
+}
+/*
+int offset=0;//端口起始偏移
+int comnum=0;//串口个数
+*/
+void chkcom(int offset,int comnum)
+{
+	int i;int j;
+	int len;
+	int recilen;
+	char strdev[255];//device string
+	unsigned char buf_send[TRAN_LEN];
+	unsigned char buf_reci[TRAN_LEN];
 	class Cuart com[comnum];//
 	//打开
 	for(i=0;i<comnum;i++){
@@ -103,41 +108,10 @@ int main(int argc,char ** argv)
 	for(i=0;i<comnum;i++){
 		com[i].close_uart();
 	}
-#endif
-#if 0
-	//简单的测试 端口3 和 8
-	com3.open_uart("/dev/ttyS2", O_RDWR);
-	com8.open_uart("/dev/ttyS3", O_RDWR);
-	//默认设置
-	//发送本端口
-	memset(buf_send,0x03,TRAN_LEN);
-	len=com3.uart_write(buf_send,4);
-	if(len != TRAN_LEN){
-		printf("len write=%d \n",len);
-	}
-	printf("buf_send:");
-	for(i=0;i<len;i++){
-		printf(" 0x%02X",buf_send[i]);
-	}
-	printf("\n");
-
-	//接收
-	memset(buf_reci,0x00,TRAN_LEN);//清
-	printf("buf_reci:");
-	while(1) {
-		recilen=com8.uart_read(buf_reci,4);
-		for(i=0;i<recilen;i++){
-			printf(" 0x%02X",buf_reci[i]);
-		}
-		if(recilen<=0) break;
-	}
-	printf("\n");
-
-	com3.close_uart();
-	com8.close_uart();
-#endif
-	return 0;
+	return ;
 }
+
+//两个串口直接相连的检测
 void directlink(int a,int b)
 {
 	int i;
@@ -161,11 +135,11 @@ void directlink(int a,int b)
 		printf("len write=%d \n",len);
 	}
 	printf("\tcom%d\n",a+1);
-//	printf("buf_send:");
-//	for(i=0;i<len;i++){
-//		printf(" 0x%02X",buf_send[i]);
-//	}
-//	printf("\n");
+	//	printf("buf_send:");
+	//	for(i=0;i<len;i++){
+	//		printf(" 0x%02X",buf_send[i]);
+	//	}
+	//	printf("\n");
 
 	//接收
 	memset(buf_reci,0x00,TRAN_LEN);//清

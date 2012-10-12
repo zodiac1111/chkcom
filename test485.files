@@ -1,5 +1,4 @@
-/home/lee/test/test485/test485.cpp
-/home/lee/test/test485/test485.h
-/home/lee/test/test485/uart.cpp
-uart.h
-uart.cpp
+./test485.cpp
+./test485.h
+./uart.cpp
+./uart.h
