@@ -165,12 +165,16 @@ void directlink(int a,int b)
 
 void printusage(void)
 {
-	printf("Usage1: testcom <start number> <com number>\n"
-	       "\tFor example: testcom 2 4\n"
-	       "\t> then will check COM2 COM3 COM4 COM5 ,4 COM ports. \n"
-	       "Usage2: testcom -d <comA> <comB>\n"
-	       "\tFor example: testcom -d 3 4\n"
-	       "\t> Direct link the COM3 and COM4,check them.\n\n"
+	printf("Usage: chkcom <start number> <com number>\n"
+	       "   or: chkcom -d <comA> <comB>\n"
+	       "check the com port with itself\n"
+	       "\n"
+	       "Example:\n"
+	       "testcom 3 4\n"
+	       "\tThis command will check COM3 COM4 COM5 COM6 ,4 COM ports. \n"
+	       "testcom -d 3 4\n"
+	       "\tDirect link the COM3 and COM4,check them.\n"
+	       "\n"
 	       "The meaning of symbols in the table:\n"
 	       "\tO:OK\n"
 	       "\tX:Not OK\n"
