@@ -63,7 +63,10 @@ void chkcom(int offset,int comnum)
 	//打开
 	for(i=0;i<comnum;i++){
 		sprintf(strdev,"/dev/ttyS%d",i+offset);
-		com[i].open_uart(strdev,O_RDWR);
+		if(com[i].open_uart(strdev,O_RDWR)<0){
+			printf("open com%d err\n",i+offset+1);
+			exit(1);
+		}
 	}
 	//打印表头
 	printf("\t");
@@ -74,7 +77,7 @@ void chkcom(int offset,int comnum)
 	//数据
 	for(i=0;i<comnum;i++){
 		printf("com%d\t",i+offset+1);//序号
-		memset(buf_send,i,TRAN_LEN);//发送信息(本端口号)
+		memset(buf_send,i+offset+1,TRAN_LEN);//发送信息(本端口号)
 		len=com[i].uart_write(buf_send,TRAN_LEN);
 		//
 		for(j=0;j<comnum;j++){ //一行内
@@ -87,16 +90,21 @@ void chkcom(int offset,int comnum)
 
 			while(1) {
 				recilen=com[j].uart_read(buf_reci,TRAN_LEN);
-				//				for(k=0;k<recilen;k++){
-				//					//printf(" 0x%02X",buf_reci[i]);
-				//				}
+				//for(k=0;k<recilen;k++){
+				//	//printf(" 0x%02X",buf_reci[i]);
+				//}
 				if(recilen<=0) break;
 			}
 			//得出结论, 通/不通
 			if(buf_reci[0]==buf_send[0]){
-				printf("O");
+				printf("O");fflush(stdout);
 			}else{
-				printf("X");
+				printf("X");fflush(stdout);
+				if(buf_reci[0]!=0xFF){
+					printf("\nreci:[%02X],maybe other program "
+					       "is using serial port now.\n",buf_reci[0]);
+					goto stop;
+				}
 			}
 			printf("\t");
 			fflush(stdout);
@@ -104,6 +112,7 @@ void chkcom(int offset,int comnum)
 		printf("\n");
 		//i++;
 	}
+stop:
 	//关闭
 	for(i=0;i<comnum;i++){
 		com[i].close_uart();
@@ -124,9 +133,15 @@ void directlink(int a,int b)
 	//int offset=2;//端口起始偏移
 	//简单的测试 端口3 和 8
 	sprintf(strdev,"/dev/ttyS%d",a);
-	coma.open_uart(strdev, O_RDWR);
+	if(coma.open_uart(strdev, O_RDWR)<=0){
+		printf("open com%d err\n",a+1);
+		exit(1);
+	}
 	sprintf(strdev,"/dev/ttyS%d",b);
-	comb.open_uart(strdev, O_RDWR);
+	if(comb.open_uart(strdev, O_RDWR)<=0){
+		printf("open com%d err\n",b+1);
+		exit(1);
+	}
 	//默认设置
 	//发送本端口
 	memset(buf_send,a,TRAN_LEN);
@@ -142,7 +157,7 @@ void directlink(int a,int b)
 	//	printf("\n");
 
 	//接收
-	memset(buf_reci,0x00,TRAN_LEN);//清
+	memset(buf_reci,0xFF,TRAN_LEN);//清空接收区,0有可能与COM1(ttyS0)混淆
 	//printf("buf_reci:");
 	printf("com%d\t",b+1);fflush(stdout);
 	while(1) {
@@ -154,10 +169,16 @@ void directlink(int a,int b)
 	}
 	//printf("\n");
 	if(buf_reci[0]==buf_send[0]){
-		printf("O");
+		printf("O");fflush(stdout);
 	}else{
-		printf("X");
+		printf("X");fflush(stdout);
+		if(buf_reci[0]!=0xFF){
+			printf("\nreci:[%02X],maybe other program"
+			       "is using serial port now.\n",buf_reci[0]);
+			goto stop;
+		}
 	}
+stop:
 	printf("\n");
 	coma.close_uart();
 	comb.close_uart();
@@ -165,18 +186,18 @@ void directlink(int a,int b)
 
 void printusage(void)
 {
-	printf("Usage: chkcom <start number> <com number>\n"
+	printf("Usage: chkcom <Start number> <Number of ports>\n"
 	       "   or: chkcom -d <comA> <comB>\n"
-	       "check the com port with itself\n"
+	       "Check the Serial Ports(comX).\n"
 	       "\n"
-	       "Example:\n"
-	       "testcom 3 4\n"
-	       "\tThis command will check COM3 COM4 COM5 COM6 ,4 COM ports. \n"
-	       "testcom -d 3 4\n"
-	       "\tDirect link the COM3 and COM4,check them.\n"
+	       "For example:\n"
+	       "\tchkcom 3 4\n"
+	       "\t> Check COM3 COM4 COM5 COM6,altogether 4 COM ports. \n"
+	       "\tchkcom -d 3 4\n"
+	       "\t> Direct link the COM3 and COM4,check them.\n"
 	       "\n"
 	       "The meaning of symbols in the table:\n"
-	       "\tO:OK\n"
-	       "\tX:Not OK\n"
-	       "\t-:Itself port\n");
+	       "\tO: linked\n"
+	       "\tX: unlinked.\n"
+	       "\t-: Itself port\n");
 }

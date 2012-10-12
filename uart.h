@@ -18,7 +18,7 @@ public:
 	~Cuart();
 	int open_uart(const char *file, int oflag);
 	int close_uart(void);
-	void set_speed(int speed);
+	int set_speed(int speed);
 	int set_Parity(int databits, int stopbits, int parity);
 	int uart_write(const void *buf, size_t n);
 	int uart_read( void *buf, size_t nbytes);

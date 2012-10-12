@@ -26,13 +26,17 @@ int Cuart::open_uart(const char *file, int oflag)
 {
 	fd=open(file,oflag);
 	if(fd>0){
-		this->set_speed(1200);
-		this->set_Parity(8, 1, 'N');
+		if(set_speed(1200)<0){
+			return -1;
+		}
+		if(set_Parity(8, 1, 'N')<0){
+			return -1;
+		}
 	}
 	return fd;
 }
 
-void Cuart::set_speed(int speed)
+int Cuart::set_speed(int speed)
 {
 	int i;
 	int status;
@@ -45,12 +49,13 @@ void Cuart::set_speed(int speed)
 			cfsetospeed(&Opt, speed_arr[i]);
 			status = tcsetattr(fd, TCSANOW, &Opt);
 			if (status != 0) {
-				perror("tcsetattr fd1");
-				return;
+				perror("set com speed:");
+				return -1;
 			}
 			tcflush(fd, TCIOFLUSH);
 		}
 	}
+	return 0;
 }
 /**
 
@@ -64,7 +69,7 @@ int Cuart::set_Parity(int databits, int stopbits, int parity)
 {
 	struct termios options;
 	if (tcgetattr(fd, &options) != 0) {
-		perror("SetupSerial 1");
+		perror("set_Parity1");
 		return -1;
 	}
 	options.c_cflag &= ~CSIZE;
