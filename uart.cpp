@@ -1,6 +1,4 @@
 #include "uart.h"
-
-
 Cuart::Cuart()
 {
 	speed_arr[0] = B38400;
@@ -17,19 +15,20 @@ Cuart::Cuart()
 	name_arr[4] = 2400;
 	name_arr[5] = 1200;
 	name_arr[6] = 300;
-
 }
+
 Cuart::~Cuart()
 {
 }
+
 int Cuart::open_uart(const char *file, int oflag)
 {
 	fd=open(file,oflag);
-	if(fd>0){
-		if(set_speed(1200)<0){
+	if(fd>0) {
+		if(set_speed(1200)<0) {
 			return -1;
 		}
-		if(set_Parity(8, 1, 'N')<0){
+		if(set_Parity(8, 1, 'N')<0) {
 			return -1;
 		}
 	}
@@ -124,7 +123,7 @@ int Cuart::set_Parity(int databits, int stopbits, int parity)
 	}
 	/* Set input parity option */
 	if (parity != 'n')
-		options.c_iflag |= INPCK;
+	{ options.c_iflag |= INPCK; }
 	tcflush(fd, TCIFLUSH);
 	options.c_cc[VTIME] = 5;	/* ÉèÖÃ³¬Ê±15 seconds */
 	options.c_cc[VMIN] = 0;	/* Update the options and do it NOW */
@@ -139,10 +138,12 @@ int Cuart::close_uart(void)
 {
 	return close(this->fd);
 }
+
 int Cuart::uart_write(const void *buf, size_t n)
 {
 	return write(fd,buf,n);
 }
+
 int Cuart::uart_read( void *buf, size_t nbytes)
 {
 	return read(fd, buf,nbytes);
