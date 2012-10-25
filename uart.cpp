@@ -23,7 +23,7 @@ Cuart::~Cuart()
 
 int Cuart::open_uart(const char *file, int oflag)
 {
-	fd=open(file,oflag);
+	this->fd=open(file,oflag);
 	if(fd>0) {
 		if(set_speed(1200)<0) {
 			return -1;
@@ -125,8 +125,8 @@ int Cuart::set_Parity(int databits, int stopbits, int parity)
 	if (parity != 'n')
 	{ options.c_iflag |= INPCK; }
 	tcflush(fd, TCIFLUSH);
-	options.c_cc[VTIME] = 5;	/* 设置超时15 seconds */
-	options.c_cc[VMIN] = 0;	/* Update the options and do it NOW */
+	options.c_cc[VTIME] = 2;	/* 设置超时15 seconds */
+	options.c_cc[VMIN] =	0;	/* Update the options and do it NOW */
 	if (tcsetattr(fd, TCSANOW, &options) != 0) {
 		perror("tcsetattr\n");
 		return (-1);
@@ -134,7 +134,7 @@ int Cuart::set_Parity(int databits, int stopbits, int parity)
 	return (0);
 }
 
-int Cuart::close_uart(void)
+int Cuart::close_uart(void)const
 {
 	return close(this->fd);
 }
@@ -144,7 +144,32 @@ int Cuart::uart_write(const void *buf, size_t n)
 	return write(fd,buf,n);
 }
 
-int Cuart::uart_read( void *buf, size_t nbytes)
+int Cuart::uart_read( unsigned char *buf, size_t nbytes)
 {
-	return read(fd, buf,nbytes);
+	int len =nbytes;
+	int no= 0;int rc;int rcnum = len;
+	struct timeval tv;
+
+	fd_set readfd;
+	tv.tv_sec=0;    //SECOND
+	tv.tv_usec=200000;  //USECOND 200ms
+	FD_ZERO(&readfd);
+	FD_SET(this->fd,&readfd);
+	rc=select(fd+1,&readfd,NULL,NULL,&tv);
+	if(rc>0) {
+		while(len) {
+			rc=read(fd,&buf[no],1);
+			if(rc>0)
+				no=no+1;
+			len=len-1;
+		}
+		//if(no!=rcnum)
+		//     return -1;      //如果收到的长度与期望长度不一样，返回-1
+		return rcnum;      //收到长度与期望长度一样，返回长度
+	} else{
+		return -1;
+	}
+	return rc;
+
+	//return read(fd, buf,nbytes);
 }

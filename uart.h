@@ -17,11 +17,11 @@ public:
 	Cuart();
 	~Cuart();
 	int open_uart(const char *file, int oflag);
-	int close_uart(void);
+	int close_uart(void) const;
 	int set_speed(int speed);
 	int set_Parity(int databits, int stopbits, int parity);
 	int uart_write(const void *buf, size_t n);
-	int uart_read( void *buf, size_t nbytes);
+	int uart_read( unsigned char *buf, size_t nbytes);
 public:
 	int fd;
 	int speed_arr[7] ;

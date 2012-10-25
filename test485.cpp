@@ -25,7 +25,7 @@
 #include "uart.h"
 #include "test485.h"
 #define TRAN_LEN 2 //发送长度
-#define TEST485INF "[test485]"
+#define TEST485INF "[chkcom]"
 int main(int argc,char ** argv)
 {
 	if(argc < 3) {
@@ -33,9 +33,14 @@ int main(int argc,char ** argv)
 		return 0;
 	}
 	if(argc == 3 ) {
-		int offset=atoi(argv[1])-1; //COM1开始 地址则ttyS0 开始
-		int comnum=atoi(argv[2]);
-		chkcom(offset,comnum);
+		int start=atoi(argv[1])-1; //COM1开始 地址则ttyS0 开始
+		int end=atoi(argv[2])-1;
+		if(end<=start){
+			printf(TEST485INF"Start port must less than end port.\n");
+			printusage();
+			return 0;
+		}
+		chkcom(start,(end-start)+1);
 		return 0;
 	}
 	if(argc == 4 && strcmp(argv[1],"-d")==0) {
@@ -60,17 +65,20 @@ void chkcom(int offset,int comnum)
 	char strdev[255];//device string
 	unsigned char buf_send[TRAN_LEN];
 	unsigned char buf_reci[TRAN_LEN];
+	if(comnum<=1){
+		return;
+	}
 	class Cuart com[comnum];//
 	//打开
 	for(i=0; i<comnum; i++) {
 		sprintf(strdev,"/dev/ttyS%d",i+offset);
 		if(com[i].open_uart(strdev,O_RDWR)<0) {
-			printf("open com%d err\n",i+offset+1);
-			exit(1);
+			printf(TEST485INF"open com%d err\n",i+offset+1);
+			exit(-2);
 		}
 	}
 	//打印表头
-	printf("\t");
+	printf("Tx\\Rx\t");
 	for(i=0; i<comnum; i++) {
 		printf("com%d\t",i+offset+1);
 	}
@@ -88,21 +96,14 @@ void chkcom(int offset,int comnum)
 				continue; //跳过该端口本身
 			}
 			while(1) {
+				//printf("reading \n");
 				recilen=com[j].uart_read(buf_reci,TRAN_LEN);
+				//printf("read over\n");
 				if(recilen<=0) { break; }
 			}
 			//得出结论, 通/不通
-			if(buf_reci[0]==buf_send[0]) {
-				printf("O");
-				fflush(stdout);
-			} else {
-				printf("X");
-				fflush(stdout);
-				if(buf_reci[0]!=0xFF) {
-					printf("\nreci:[%02X],maybe other program "
-					       "is using serial port now.\n",buf_reci[0]);
-					goto stop;
-				}
+			if(adjust(buf_send[0],buf_reci[0]) < 0) {
+				goto stop;
 			}
 			printf("\t");
 			fflush(stdout);
@@ -133,12 +134,12 @@ void directlink(int a,int b)
 	sprintf(strdev,"/dev/ttyS%d",a);
 	if(coma.open_uart(strdev, O_RDWR)<=0) {
 		printf("open com%d err\n",a+1);
-		exit(1);
+		exit(-2);
 	}
 	sprintf(strdev,"/dev/ttyS%d",b);
 	if(comb.open_uart(strdev, O_RDWR)<=0) {
 		printf("open com%d err\n",b+1);
-		exit(1);
+		exit(-3);
 	}
 	//默认设置
 	//发送本端口
@@ -147,11 +148,13 @@ void directlink(int a,int b)
 	if(len != TRAN_LEN) {
 		printf("len write=%d \n",len);
 	}
-	printf("\tcom%d\n",a+1);
+	printf("Tx\\Rx\t");
+	printf("com%d\n",b+1);
 	//接收
 	memset(buf_reci,0xFF,TRAN_LEN);//清空接收区,0有可能与COM1(ttyS0)混淆
 	//printf("buf_reci:");
-	printf("com%d\t",b+1);
+
+	printf("com%d\t",a+1);
 	fflush(stdout);
 	while(1) {
 		recilen=comb.uart_read(buf_reci,TRAN_LEN);
@@ -160,18 +163,7 @@ void directlink(int a,int b)
 		}
 		if(recilen<=0) { break; }
 	}
-	if(buf_reci[0]==buf_send[0]) {
-		printf("O");
-		fflush(stdout);
-	} else if(buf_reci[0]==0xFF) {
-		printf("X");
-		fflush(stdout);
-	} else {
-		printf("\nreci:[%02X],maybe other program"
-		       "is using serial port now.\n",buf_reci[0]);
-		goto stop;
-	}
-stop:
+	adjust(buf_send[0],buf_reci[0]);
 	printf("\n");
 	coma.close_uart();
 	comb.close_uart();
@@ -179,13 +171,13 @@ stop:
 
 void printusage(void)
 {
-	printf("Usage: chkcom <Start number> <Number of ports>\n"
+	printf("Usage: chkcom <Start port> <End port>\n"
 	       "   or: chkcom -d <comA> <comB>\n"
 	       "Check the Serial Ports(comX).\n"
 	       "\n"
 	       "For example:\n"
-	       "\tchkcom 3 4\n"
-	       "\t> Check COM3 COM4 COM5 COM6,altogether 4 COM ports. \n"
+	       "\tchkcom 3 6\n"
+	       "\t> Check COM3 COM4 COM5 COM6 ports. \n"
 	       "\tchkcom -d 3 4\n"
 	       "\t> Direct link the COM3 and COM4,check them.\n"
 	       "\n"
@@ -193,4 +185,23 @@ void printusage(void)
 	       "\tO: linked\n"
 	       "\tX: unlinked.\n"
 	       "\t-: Itself port\n");
+}
+int adjust(unsigned char send,unsigned char reci)
+{
+	if(reci==send) {
+		printf("O");
+		fflush(stdout);
+		return 0;
+	} else if(reci==0xFF) {
+		printf("X");
+		fflush(stdout);
+		return 0;
+	} else {
+		printf("\n");
+		printf(TEST485INF"Reci:[0x%02X],maybe other program"
+		       " is using serial port now.\n"
+		       "Please stop other programs.\n",reci);
+		return -1;
+	}
+	return 0;
 }
