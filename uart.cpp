@@ -31,6 +31,8 @@ int Cuart::open_uart(const char *file, int oflag)
 		if(set_Parity(8, 1, 'N')<0) {
 			return -1;
 		}
+	}else{
+		perror("open ,fd error\n");
 	}
 	return fd;
 }
@@ -141,7 +143,32 @@ int Cuart::close_uart(void)const
 
 int Cuart::uart_write(const void *buf, size_t n)
 {
+//	printf("buf=%x\n",*(char*)buf);
 	return write(fd,buf,n);
+//	int len =n;
+//	int no= 0;int rc;int rcnum = len;
+//	struct timeval tv;
+
+//	fd_set readfd;
+//	tv.tv_sec=1;    //SECOND
+//	tv.tv_usec=0;  //USECOND 1000ms to write
+//	FD_ZERO(&readfd);
+//	FD_SET(this->fd,&readfd);
+//	rc=select(fd+1,&readfd,NULL,NULL,&tv);
+//	if(rc>0) {
+//		while(len) {
+//			rc=write(fd,buf,n);
+//			if(rc>0)
+//				no=no+1;
+//			len=len-1;
+//		}
+//		//if(no!=rcnum)
+//		//     return -1;      //如果收到的长度与期望长度不一样，返回-1
+//		return rcnum;      //收到长度与期望长度一样，返回长度
+//	} else{
+//		return -1;
+//	}
+//	return rc;
 }
 
 int Cuart::uart_read( unsigned char *buf, size_t nbytes)
@@ -163,13 +190,13 @@ int Cuart::uart_read( unsigned char *buf, size_t nbytes)
 				no=no+1;
 			len=len-1;
 		}
-		//if(no!=rcnum)
-		//     return -1;      //如果收到的长度与期望长度不一样，返回-1
+//		if(no!=rcnum)
+//		     return -1;      //如果收到的长度与期望长度不一样，返回-1
 		return rcnum;      //收到长度与期望长度一样，返回长度
 	} else{
 		return -1;
 	}
 	return rc;
 
-	//return read(fd, buf,nbytes);
+//	return read(fd, buf,nbytes);
 }
